@@ -1,0 +1,78 @@
+#!/bin/bash
+# 
+# Conversione minimale da qualsiasi formato audio/video al classico XviD
+# (MPEG-4 + MP3), con parametri di default 
+# 
+# La pipeline è anche un buon modello di trattamento di due stream sia in
+# input che in output. C'è un demuxer che fa anche da decoder, chiamato
+# proprio "decoder", che subito per estrae e decodifica il video che viene poi
+# mandato al codificatore, che a sua volta subito manda lo stream codificato
+# al muxer "mux" dichiarato più avanti. Il demuxer viene invocato una seconda
+# volta per elaborare l'audio, il quale pure viene poi mandato al muxer.
+
+# Mi chiedo se l'ordine delle dichiarazioni sia rilevante.
+
+URL="$1"							# URL dello stream RTSP
+DESTDIR="$2"					# directory dove mettere il file MP3
+if [ $# -lt 2 ] ; then
+	echo
+	echo "Streams and converts Real Audio RTSP streams to MP3, "
+	echo "with a low quality profile"
+	echo
+	echo "Usage: $0 <rtsp_url> <dest_dir>"
+	echo
+	exit
+fi
+FILE=${URL##*/}
+BASE=${FILE%%.*}
+DEST=$DESTDIR/$BASE.ogg
+
+# Ecco la pipeline di gstreamer
+SRC="$1"
+DST="$2"
+VBT="${3:-500000}"
+ABT="${4:-64}"
+
+echo $VBT, $ABT
+
+CMD="gst-launch rtspsrc \
+		location=\"$URL\" \
+		latency=4000 \
+	! decodebin2 name=decoder \
+	decoder. \
+	! queue \
+	! videorate \
+	! theoraenc \
+		bitrate=$VBT \
+	! mux. \
+	decoder. \
+	! audioconvert \
+	! audiorate tolerance=40000000 \
+	! vorbisenc \
+		bitrate=$ABT \
+	! queue \
+	! mux. \
+	oggmux name=mux \
+	! filesink location=\"$DEST\""
+
+echo "$CMD"
+echo "$(date --iso=seconds) Converting $FILE..."
+STIME=$(date +"%s")
+coproc $CMD > /dev/null 2>&1
+
+# Tiene d'occhio il file MP3, e quando non cresce più,
+# uccide il coprocesso.
+oSize=-1000
+nSize=1000
+i=0
+while [ $oSize != $nSize ] ; do
+	oSize=$nSize
+	sleep 5
+	nSize=$(stat -c "%s" $DEST)
+	echo -en "$((i+=5)) \r"
+done
+kill $COPROC_PID
+ETIME=$(date +"%s")
+echo "$(date --iso=seconds) Finished, elapsed time $((ETIME-STIME)) seconds"
+echo
+echo "Done"

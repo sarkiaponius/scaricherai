@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# Scarica e converte in MP3 (lame -V9) uno stream RTSP, a grande velocità
+# permessa da una patch di gstreamer, ad oggi ancora non rilasciata
+
+URL="$1"							# URL dello stream RTSP
+DESTDIR="$2"					# directory dove mettere il file MP3
+if [ $# -lt 2 ] ; then
+	echo
+	echo "Streams and converts Real Audio RTSP streams to MP3, "
+	echo "with a low quality profile"
+	echo
+	echo "Usage: $0 <rtsp_url> <dest_dir>"
+	echo
+	exit
+fi
+FILE=${URL##*/}
+BASE=${FILE%%.*}
+DEST=$DESTDIR/$BASE.mp3
+
+# Ecco la pipeline di gstreamer
+
+CMD="gst-launch-0.10 rtspsrc location=\"$URL\" \
+  ! decodebin2 \
+	! progressreport \
+	! lamemp3enc target=quality quality=9 mono=1 \
+	! xingmux \
+	! filesink location=\"$DEST\""
+echo "$(date --iso=seconds) Converting $FILE..."
+STIME=$(date +"%s")
+coproc $CMD > /dev/null 2>&1
+
+# Tiene d'occhio il file MP3, e quando non cresce più,
+# uccide il coprocesso.
+oSize=-1000
+nSize=1000
+i=0
+while [ $oSize != $nSize ] ; do
+	oSize=$nSize
+	sleep 5
+	nSize=$(stat -c "%s" "$DEST")
+	echo -en "$((i+=5)) \r"
+done
+kill $COPROC_PID
+ETIME=$(date +"%s")
+echo "$(date --iso=seconds) Finished, elapsed time $((ETIME-STIME)) seconds"
+echo
+echo "Done"

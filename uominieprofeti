@@ -1,0 +1,68 @@
+#!/bin/bash
+# File:	uominiprofeti
+# Date: 2013-04-06
+# Author: andrea
+#
+# Scarica e converte in MP3 in qualità "voce" tutto l'archivio della
+# trasmissione "Uomini e profeti" di Rai Radio 3.
+# Richiama lo script "rtsp2mp3", basato su gstreamer, per lo scarico vero e
+# proprio.
+#
+# Per un uso reale, occorre una versione modificata di gstreamer 0.10 che
+# ignora le impostazioni per il real time e quindi scarica alla massima
+# velocità possibile. In caso contrario ogni stream viena scaricato in un
+# tempo equivalente alla sua durata, e quindi l'intero archivio può richiedere
+# giorni e giorni.
+
+function archivio()
+{
+	if [ -s archivio-uominiprofeti-completo.html ]; then
+		cat archivio-uominiprofeti-completo.html
+	else
+		for((ii = 1; ii <= 10; ii += 4)); do
+			page="http://www.radio.rai.it/radio3/uomini_profeti/puntate.cfm"
+			page="${page}?first=${ii}"
+			page="${page}&Q_DATA_IN=01/01/2001&Q_DATA_OUT=24/01/2010"
+			curl -s "$page" | tr -d ''
+		done 
+	fi | uominieprofeti.awk
+}
+
+base=http://www.radio.rai.it/radio3/uomini_profeti/puntate.cfm
+dest="/data/audio/Trasmissioni/Uomini e Profeti/archivio/"
+
+# Viene ora sfogliato, pagina per pagina, l'archivio intero. 
+
+ifs=$IFS
+IFS=$'\n'
+odd=1
+for row in $(archivio); do
+	if [ $odd -eq 1 ]; then 
+		rtsp=$(curl -s "$row" | tr -d '\n\r')
+		start="${rtsp%%:*}"
+		if [ "$start" = "rtsp" -o "$start" = "pnm" ]; then
+			ff="${rtsp##*/}"
+			gg="${ff%%.*}.mp3"
+			echo "$rtsp" >> rtsp.txt
+			if [ -s "$dest$gg" ] ; then 
+				echo "Skipping $ff..."
+			else
+
+# Scarica uno stream, o almeno ci prova. Inoltre mantiene un elenco di url
+# RTSP sul quale poi si potrebbe ciclare. L'ultima di queste viene tenuta da
+# parte per riprendere eventualmente da quella uno scarico interrotto.
+			
+				echo "$rtsp" > last
+				rtsp2mp3 "$rtsp" "$dest"
+			fi
+		fi
+		odd=0
+	else
+		#title=$(echo "$row" | tr -d '\n\r')
+		title=$(echo "$row" | tr -d '\n\r' | sed 's/<br>/ /g' | sed 's/<i>/ /g' )
+		echo "${title:0:40}..."
+		mid3v2 --song="$title" "$dest$gg"
+		odd=1
+	fi
+done
+IFS=$ifs
