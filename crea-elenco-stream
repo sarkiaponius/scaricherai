@@ -1,0 +1,50 @@
+#!/bin/bash
+# File:	crea-elenco-stream
+# Date: 2014-01-06
+# Author: andrea
+#
+# Scarica l'elenco degli stream nell'archivio della trasmissione "Uomini e
+# profeti" di Rai Radio 3.
+# Può partire da un file già scaricato dall'archivio della trasmissione (fermo
+# da anni), oppure dalla url dello stesso.
+# Produce in output un file CSV, con separatore tab, in cui la prima colonna è
+# la url dello stream, la seconda è il nome del file, la terza, quando
+# possibile, è il titolo della puntata.
+
+function archivio()
+{
+	if [ -s "$1" ]; then
+		cat "$1"
+	else
+		for((ii = 1; ii <= 10; ii += 4)); do
+			page="http://www.radio.rai.it/radio3/uomini_profeti/puntate.cfm"
+			page="${page}?first=${ii}"
+			page="${page}&Q_DATA_IN=01/01/2001&Q_DATA_OUT=24/01/2010"
+			curl -s "$page" | tr -d ''
+		done 
+	fi | uominieprofeti.awk
+}
+
+base=http://www.radio.rai.it/radio3/uomini_profeti/puntate.cfm
+dest="$1"
+
+# Viene ora sfogliato, pagina per pagina, l'archivio intero. 
+
+ifs=$IFS
+IFS=$'\n'
+odd=1
+for row in $(archivio "$2"); do
+	if [ $odd -eq 1 ]; then 
+		rtsp=$(curl -s "$row" | tr -d '\n\r')
+		start="${rtsp%%:*}"
+		if [ "$start" = "rtsp" -o "$start" = "pnm" ]; then
+			ra="${rtsp##*/}"
+		fi
+		odd=0
+	else
+		title=$(echo "$row" | tr -d '\n\r' | sed 's/<br>/ /g' | sed 's/<i>/ /g' )
+		echo "$rtsp	$ra	$title"
+		odd=1
+	fi
+done
+IFS=$ifs
