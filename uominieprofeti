@@ -16,8 +16,11 @@
 
 function archivio()
 {
-	if [ -s archivio-uominiprofeti-completo.html ]; then
-		cat archivio-uominiprofeti-completo.html
+	#if [ -s archivio-uominiprofeti-completo.html ]; then
+		#cat archivio-uominiprofeti-completo.html
+	if [ -s "$1" ]; then
+		echo "Reading from $1..."
+		cat "$1"
 	else
 		for((ii = 1; ii <= 10; ii += 4)); do
 			page="http://www.radio.rai.it/radio3/uomini_profeti/puntate.cfm"
@@ -29,14 +32,14 @@ function archivio()
 }
 
 base=http://www.radio.rai.it/radio3/uomini_profeti/puntate.cfm
-dest="/data/audio/Trasmissioni/Uomini e Profeti/archivio/"
+dest="$1"
 
 # Viene ora sfogliato, pagina per pagina, l'archivio intero. 
 
 ifs=$IFS
 IFS=$'\n'
 odd=1
-for row in $(archivio); do
+for row in $(archivio "$2"); do
 	if [ $odd -eq 1 ]; then 
 		rtsp=$(curl -s "$row" | tr -d '\n\r')
 		start="${rtsp%%:*}"
