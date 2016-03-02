@@ -13,17 +13,28 @@
 # http://www.radio.rai.it/radio3/podcast/rssradio3.jsp?id=272
 # http://www.radio.rai.it/rss/podcast/rssradio.jsp?channel=WR6&id=15706
 
-if [ $# -lt 2 ]; then
-	echo "Usage: ${0##*/} <start> <stop>"
+if [ $# -lt 3 ]; then
+	echo "Usage: ${0##*/} <Radio2|Radio3|WebRadio6> <start> <stop>"
   exit
 fi
 
-START=$1
-STOP=$2
-BASE="http://www.radio.rai.it/radio2/podcast/rssradio2.jsp?id="
-BASE="http://www.radio.rai.it/radio3/podcast/rssradio3.jsp?id="
-BASE="http://www.radio.rai.it/rss/podcast/rssradio.jsp?channel=WR6&id="
+RADIO=$1
+START=$2
+STOP=$3
 
+if [ "$RADIO" = "Radio2" ]; then
+  BASE="http://www.radio.rai.it/radio2/podcast/rssradio2.jsp?id="
+elif [ "$RADIO" = "Radio3" ]; then
+  BASE="http://www.radio.rai.it/radio3/podcast/rssradio3.jsp?id="
+elif [ "$RADIO" = "WebRadio6" ]; then
+  BASE="http://www.radio.rai.it/rss/podcast/rssradio.jsp?channel=WR6&id="
+else 
+  echo "Radio $RADIO non gestita"
+  exit
+fi
+
+mkdir $RADIO
+cd $RADIO
 for((i=$START;i<=$STOP;i++)); do 
 	curl -s "$BASE$i" > temp.xml
 	channel="$(xmllint --xpath '//channel/title' temp.xml 2>/dev/null | sed 's+<title>++' | sed 's+</title>++')"
@@ -39,4 +50,5 @@ for((i=$START;i<=$STOP;i++)); do
 		fi
 	fi
 done
-#rm -f temp.xml
+rm -f temp.xml
+cd ..
