@@ -10,6 +10,9 @@
 # sono invece salvati con questo elemento come titolo.
 #
 
+# http://www.radio.rai.it/radio3/podcast/rssradio3.jsp?id=272
+# http://www.radio.rai.it/rss/podcast/rssradio.jsp?channel=WR6&id=15706
+
 if [ $# -lt 2 ]; then
 	echo "Usage: ${0##*/} <start> <stop>"
   exit
@@ -17,9 +20,12 @@ fi
 
 START=$1
 STOP=$2
+BASE="http://www.radio.rai.it/radio2/podcast/rssradio2.jsp?id="
+BASE="http://www.radio.rai.it/radio3/podcast/rssradio3.jsp?id="
+BASE="http://www.radio.rai.it/rss/podcast/rssradio.jsp?channel=WR6&id="
 
 for((i=$START;i<=$STOP;i++)); do 
-	curl -s "http://www.radio.rai.it/radio2/podcast/rssradio2.jsp?id=$i" > temp.xml
+	curl -s "$BASE$i" > temp.xml
 	channel="$(xmllint --xpath '//channel/title' temp.xml 2>/dev/null | sed 's+<title>++' | sed 's+</title>++')"
 	number=$(printf "%05d" $i)
 	if [ -z "$channel" ] ; then 
@@ -33,4 +39,4 @@ for((i=$START;i<=$STOP;i++)); do
 		fi
 	fi
 done
-rm -f temp.xml
+#rm -f temp.xml
