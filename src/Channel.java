@@ -16,7 +16,9 @@ public class Channel
 	private String title;
 	private String link;
 	private String description;
+	private int length;
 	private Vector<Item> items;
+	private int itemsCount;
 	
 	public Channel(File file)
 	{
@@ -26,6 +28,14 @@ public class Channel
 		try
 		{
 			doc = sb.build(file);
+			Element root = doc.getRootElement();
+			Element channel = root.getChild("channel");
+			setTitle(channel.getChildText("title"));
+			setLink(channel.getChildText("link"));
+			setDescription(channel.getChildText("description"));
+			setTitle(channel.getChildText("title"));
+			setItems(channel);
+			setItemsCount(getItems().size());
 		}
 		catch(JDOMException e)
 		{
@@ -35,13 +45,6 @@ public class Channel
 		{
 			e.printStackTrace();
 		}
-		Element root = doc.getRootElement();
-		Element channel = root.getChild("channel");
-		setTitle(channel.getChildText("title"));
-		setLink(channel.getChildText("link"));
-		setDescription(channel.getChildText("description"));
-		setTitle(channel.getChildText("title"));
-		setItems(channel);
 	}
 
 	public String getTitle()
@@ -90,7 +93,29 @@ public class Channel
 		while(iIter.hasNext())
 		{
 			Element ee = iIter.next();
-			items.add(new Item(ee)); 
+			Item item = new Item(ee); 
+			items.add(item);
 		}
 	}
+
+	public int getLength()
+	{
+		return length;
+	}
+
+	public void setLength(int length)
+	{
+		this.length = length;
+	}
+
+	public int getItemsCount()
+	{
+		return itemsCount;
+	}
+
+	public void setItemsCount(int itemsCount)
+	{
+		this.itemsCount = itemsCount;
+	}
+
 }
