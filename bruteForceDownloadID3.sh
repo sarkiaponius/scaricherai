@@ -14,10 +14,22 @@
 # TODO: l'intervallo di numeri per ora è fisso, ma si dovrebbe passare come
 # parametro od opzione.
 
-for((i=45666736;i>=45000000;i--)); do 
+if [ $# -lt 2 ]; then
+	echo "Usage: ${0##*/} <start> <stop>"
+  exit
+fi
+
+START=$1
+STOP=$2
+
+for((i=$START;i<=$STOP;i++)); do 
 	curl -s -r0-2048 "http://www.radio.rai.it/podcast/A$i.mp3" > temp.mp3
+	echo -n "A$i.mp3: "
 	if $(mid3v2 temp.mp3 | grep -q TIT2) ;  then 
-		echo "A$i.mp, registro tag ($(mid3v2 temp.mp3 | grep TIT2)...)"
+		echo "$(mid3v2 temp.mp3 | grep TIT2 | cut -d= -f2)..."
 		mid3v2 temp.mp3 > A$i.tag
+	else
+		echo " scartato"
 	fi
 done
+rm -f temp.mp3
