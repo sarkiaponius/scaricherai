@@ -34,7 +34,6 @@ fi
 
 cnt=0
 for((i = $START; i <= $STOP; i += $MAX)); do 
-	ID3="A$i.tag"
 	if [ -e "$ID3" ] ; then
 		echo "già scaricato" >&2
 	else
@@ -46,6 +45,7 @@ for((i = $START; i <= $STOP; i += $MAX)); do
 		curl -s -r0-$CHUNK "$BASE/A[$i-$((i + MAX - 1))].mp3" -o $FILES
 		for((j = 0; j < $MAX; j++)); do
 			MP3="A$((i + j)).mp3"
+			ID3="A$((i + j)).tag"
 			echo -n "$MP3: " >&2
 			if $(mid3v2 $MP3 | grep -q TIT2) ;  then 
 				echo "$(mid3v2 $MP3 | grep TIT2 | cut -d= -f2)..." >&2
