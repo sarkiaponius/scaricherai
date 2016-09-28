@@ -33,11 +33,19 @@ else
 	STOP=$2
 fi
 
+SQL=$START-$STOP.sql
+LOG=$START-$STOP.log
+
+if [ $# -eq 2 ]; then
+	cat /dev/null > $LOG
+	cat /dev/null > $SQL
+fi
+
+
 cnt=0
 for((i = $START; i <= $STOP; i += $MAX)); do 
-	if [ -e "$ID3" ] ; then
-		echo "già scaricato" >> $0.log
-	else
+	#if [ -e "$ID3" ] ; then
+	if [ 1 == 1 ] ; then
 		echo $i > last.txt
 
 # Prepara una stringa che servirà per i file di output di curl nella sua
@@ -59,30 +67,30 @@ for((i = $START; i <= $STOP; i += $MAX)); do
 		for((j = 0; j < $MAX; j++)); do
 			MP3="A$((i + j)).mp3"
 			ID3="A$((i + j)).tag"
-			echo -n "$MP3: " >> $0.log
+			#echo -n "$MP3: " >> $LOG
 
 # Cerca la stringa fasulla
 
 			if grep -q 'Oops! You are looking' $MP3 ; then
-				echo "scartato" >> $0.log
+				echo "scartato" > /dev/null
 
 # Non c'è la stringa, scarica un altro pezzetto che contiene tag a sufficienza
 
 			else
 				curl -s -r0-$CHUNK "$BASE/$MP3" -o $MP3
 				if $(mid3v2 $MP3 | grep -q TIT2) ;  then 
-					echo "$(mid3v2 $MP3 | grep TIT2 | cut -d= -f2)..." >> $0.log
+					echo "$MP3: $(mid3v2 $MP3 | grep TIT2 | cut -d= -f2)..." >> $LOG
 					
 # I tag sono salvati e ulteriormente elaborati per produrre una INSERT
 # opportuna per il db.
 
 					mid3v2 $MP3 > $ID3
-					./insertDB.sh $ID3
+					./insertDB.sh $ID3 >> $SQL
 
 # Se fra i tag manca TIT2 tanto vale scartare il file
 					
 				else
-					echo "scartato" >> $0.log
+					echo "scartato" > /dev/null
 				fi
 			fi
 
@@ -92,8 +100,8 @@ for((i = $START; i <= $STOP; i += $MAX)); do
 		NOW=$(date +"%s")
 		ELAPSED=$((NOW - STARTTIME))
 		((cnt+=$MAX))
-		echo "Centesimi per file: $((100 * (ELAPSED - 1) / cnt))" >> $0.log
-		sleep 1
+		echo "Centesimi per file: $((100 * (ELAPSED - 1) / cnt))" >> /dev/null
+		sleep $((RANDOM*10/32767))
 	fi
 done
 rm -f temp.mp3
